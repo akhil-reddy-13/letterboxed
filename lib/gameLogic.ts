@@ -1,5 +1,11 @@
 // Game logic for Letter Boxed
 
+import { getTodayPST, getDatePST, hashString } from './dateUtils';
+import puzzlesJson from './puzzles.json';
+
+// Puzzle format: [[side0 letters], [side1], [side2], [side3]]
+const puzzles = (puzzlesJson as { puzzles: string[][][] }).puzzles;
+
 export interface Letter {
   char: string;
   side: number; // 0 = top, 1 = right, 2 = bottom, 3 = left
@@ -16,38 +22,22 @@ export interface GameState {
   allUsedLetters: Set<string>; // Track all letters used (for win condition)
 }
 
-// Generate a daily puzzle based on date (deterministic)
-export function generateDailyPuzzle(date: Date = new Date()): Letter[] {
-  // Use date as seed for consistent daily puzzles
-  const seed = date.toISOString().split('T')[0]; // YYYY-MM-DD
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-    hash = hash & hash;
-  }
-  
-  // Fixed puzzle from the image for now, but can be randomized
-  // Top: O, T, K
-  // Right: P, I, A
-  // Bottom: W, E, C
-  // Left: R, V, N
-  
-  const puzzle: Letter[] = [
-    { char: 'O', side: 0, index: 0 },
-    { char: 'T', side: 0, index: 1 },
-    { char: 'K', side: 0, index: 2 },
-    { char: 'P', side: 1, index: 0 },
-    { char: 'I', side: 1, index: 1 },
-    { char: 'A', side: 1, index: 2 },
-    { char: 'W', side: 2, index: 0 },
-    { char: 'E', side: 2, index: 1 },
-    { char: 'C', side: 2, index: 2 },
-    { char: 'R', side: 3, index: 0 },
-    { char: 'V', side: 3, index: 1 },
-    { char: 'N', side: 3, index: 2 },
-  ];
-  
-  return puzzle;
+/**
+ * Get today's puzzle. Changes at midnight Pacific Time.
+ * Same date (in PST) = same puzzle for everyone.
+ */
+export function generateDailyPuzzle(date?: Date): Letter[] {
+  const dateStr = date ? getDatePST(date) : getTodayPST();
+  const index = hashString(dateStr) % puzzles.length;
+  const raw = puzzles[index];
+
+  const letters: Letter[] = [];
+  raw.forEach((sideLetters, side) => {
+    sideLetters.forEach((char, idx) => {
+      letters.push({ char, side, index: idx });
+    });
+  });
+  return letters;
 }
 
 export function getSideForLetter(letters: Letter[], char: string): number | null {

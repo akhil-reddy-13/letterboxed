@@ -19,6 +19,11 @@ export default function WordInput({ onKeyPress, onEnter, onDelete }: WordInputPr
         return;
       }
 
+      // Don't intercept browser shortcuts (Cmd+R, Cmd+W, Cmd+N, etc.)
+      if (e.metaKey || e.ctrlKey) {
+        return;
+      }
+
       // Handle Enter key
       if (e.key === 'Enter') {
         e.preventDefault();

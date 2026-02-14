@@ -11,28 +11,63 @@ import {
   checkWinCondition,
   getWordCount,
 } from '@/lib/gameLogic';
+import { getDisplayDatePST, getTodayPST } from '@/lib/dateUtils';
 import { isValidWord } from '@/lib/wordList';
+import { recordSolve, getTodaysSolve, getStats } from '@/lib/stats';
+import { saveGameState, loadGameState } from '@/lib/gamePersistence';
 import LetterSquare from '@/components/LetterSquare';
 import WordInput from '@/components/WordInput';
 import ControlButtons from '@/components/ControlButtons';
+import WinModal, { type WinStats } from '@/components/WinModal';
+import InfoModal from '@/components/InfoModal';
+import { buildShareText } from '@/lib/shareUtils';
 
 export default function Home() {
   const [puzzle, setPuzzle] = useState<Letter[]>([]);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const gameStartTime = useRef<number | null>(null);
+  const [winStats, setWinStats] = useState<WinStats | null>(null);
+  const [showWinModal, setShowWinModal] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [userStats, setUserStats] = useState({ totalWins: 0, streak: 0 });
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
-  // Initialize puzzle on mount
+  const today = getTodayPST();
+  const hasSolvedToday = winStats !== null;
+
+  // Initialize puzzle and load state on mount
   useEffect(() => {
     const dailyPuzzle = generateDailyPuzzle();
     setPuzzle(dailyPuzzle);
-    setGameState(createInitialState(dailyPuzzle));
-    
-    // Pre-load dictionary in background
-    isValidWord('test').catch(() => {
-      // Silent fail, will retry on actual validation
-    });
-  }, []);
+    isValidWord('test').catch(() => {});
+
+    const saved = loadGameState(today, dailyPuzzle);
+    if (saved) {
+      setGameState(saved);
+    } else {
+      setGameState(createInitialState(dailyPuzzle));
+    }
+    gameStartTime.current = Date.now();
+
+    const todaysSolve = getTodaysSolve(today);
+    if (todaysSolve) {
+      setWinStats({
+        wordCount: todaysSolve.wordCount,
+        words: todaysSolve.words,
+        solveTimeSeconds: todaysSolve.solveTimeSeconds,
+      });
+    }
+    setUserStats(getStats());
+  }, [today]);
+
+  // Persist game state whenever it changes
+  useEffect(() => {
+    if (gameState && puzzle.length) {
+      saveGameState(gameState, today);
+    }
+  }, [gameState, puzzle, today]);
 
   const handleLetterClick = useCallback((letter: Letter) => {
     if (!gameState) return;
@@ -107,28 +142,52 @@ export default function Home() {
 
   const handleDelete = useCallback(() => {
     if (!gameState) return;
-    
+
     if (gameState.currentWord.length > 0) {
       // Remove last letter from current word
       const newWord = gameState.currentWord.slice(0, -1);
       const newAllUsedLetters = new Set(gameState.allUsedLetters);
-      
-      // Remove the last letter from used letters (only for current word tracking)
-      if (gameState.currentWord.length > 0) {
-        const lastLetter = gameState.currentWord[gameState.currentWord.length - 1];
-        // Only remove if it's not in any completed word
-        const isInCompletedWords = gameState.completedWordPaths.some(path =>
-          path.some(l => l.side === lastLetter.side && l.index === lastLetter.index)
-        );
-        if (!isInCompletedWords) {
-          newAllUsedLetters.delete(`${lastLetter.side}-${lastLetter.index}`);
-        }
+      const lastLetter = gameState.currentWord[gameState.currentWord.length - 1];
+      const isInCompletedWords = gameState.completedWordPaths.some((path) =>
+        path.some((l) => l.side === lastLetter.side && l.index === lastLetter.index)
+      );
+      if (!isInCompletedWords) {
+        newAllUsedLetters.delete(`${lastLetter.side}-${lastLetter.index}`);
       }
 
       setGameState({
         ...gameState,
         currentWord: newWord,
         selectedSide: newWord.length > 0 ? newWord[newWord.length - 1].side : null,
+        allUsedLetters: newAllUsedLetters,
+      });
+      setError(null);
+      return;
+    }
+
+    // Current word empty - restore last completed word so user can backspace through it
+    if (gameState.completedWords.length > 0 && gameState.completedWordPaths.length > 0) {
+      const lastPath = gameState.completedWordPaths[gameState.completedWordPaths.length - 1];
+      const newCompletedWords = gameState.completedWords.slice(0, -1);
+      const newCompletedWordPaths = gameState.completedWordPaths.slice(0, -1);
+      const newAllUsedLetters = new Set<string>();
+      newCompletedWordPaths.forEach((path) => {
+        path.forEach((l) => newAllUsedLetters.add(`${l.side}-${l.index}`));
+      });
+      lastPath.forEach((l) => newAllUsedLetters.add(`${l.side}-${l.index}`));
+
+      setGameState({
+        ...gameState,
+        currentWord: [...lastPath],
+        completedWords: newCompletedWords,
+        completedWordPaths: newCompletedWordPaths,
+        selectedSide: lastPath[lastPath.length - 1].side,
+        lastWordEndSide:
+          newCompletedWordPaths.length > 0
+            ? newCompletedWordPaths[newCompletedWordPaths.length - 1][
+                newCompletedWordPaths[newCompletedWordPaths.length - 1].length - 1
+              ].side
+            : null,
         allUsedLetters: newAllUsedLetters,
       });
       setError(null);
@@ -185,11 +244,17 @@ export default function Home() {
 
     if (won) {
       const wordCount = newCompletedWords.length;
-      if (wordCount === 2) {
-        alert('Perfect! You solved it in 2 words! 🎉');
-      } else if (wordCount <= 5) {
-        alert(`Congratulations! You solved it in ${wordCount} words!`);
-      }
+      const solveTimeSeconds = gameStartTime.current
+        ? Math.round((Date.now() - gameStartTime.current) / 1000)
+        : 0;
+      setWinStats({
+        wordCount,
+        words: newCompletedWords,
+        solveTimeSeconds,
+      });
+      setShowWinModal(true);
+      const updated = recordSolve(today, wordCount, newCompletedWords, solveTimeSeconds);
+      setUserStats(updated);
     }
   }, [gameState]);
 
@@ -198,7 +263,18 @@ export default function Home() {
     const newState = createInitialState(puzzle);
     setGameState(newState);
     setError(null);
-  }, [puzzle]);
+    gameStartTime.current = Date.now();
+    saveGameState(newState, today);
+  }, [puzzle, today]);
+
+  const handleCopyShare = useCallback(() => {
+    if (!winStats) return;
+    const text = buildShareText(winStats.wordCount, winStats.solveTimeSeconds);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    });
+  }, [winStats]);
 
   const handleKeyPress = useCallback((key: string) => {
     if (!gameState || !puzzle.length) return;
@@ -212,7 +288,7 @@ export default function Home() {
   }, [gameState, puzzle, handleLetterClick]);
 
   if (!gameState || puzzle.length === 0) {
-    return <div style={{ padding: '20px' }}>Loading...</div>;
+    return <div style={{ padding: '20px', color: '#888' }}>Loading...</div>;
   }
 
   const currentWord = gameState.currentWord.map(l => l.char).join('');
@@ -222,12 +298,38 @@ export default function Home() {
     <div style={{ 
       display: 'flex', 
       minHeight: '100vh',
-      backgroundColor: '#f5c2c7',
+      backgroundColor: '#0f0f0f',
       padding: '20px',
       gap: '40px',
       maxWidth: '1400px',
       margin: '0 auto',
     }}>
+      {/* Info button - top right */}
+      <button
+        onClick={() => setShowInfoModal(true)}
+        style={{
+          position: 'fixed',
+          top: '16px',
+          right: '16px',
+          width: '28px',
+          height: '28px',
+          borderRadius: '4px',
+          border: '1px solid #444',
+          backgroundColor: '#1a1a1a',
+          color: '#888',
+          fontSize: '16px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100,
+        }}
+        title="About"
+      >
+        ?
+      </button>
+
       {/* Left side - Text area */}
       <div style={{ 
         flex: '1',
@@ -236,31 +338,45 @@ export default function Home() {
         gap: '20px',
       }}>
         <div style={{
+          fontSize: '14px',
+          color: '#888',
+          marginBottom: '-10px',
+        }}>
+          {getDisplayDatePST()} • Pacific
+          {userStats.totalWins > 0 && (
+            <span style={{ marginLeft: '12px', color: '#666' }}>
+              · {userStats.totalWins} win{userStats.totalWins !== 1 ? 's' : ''}
+              {userStats.streak > 0 && ` · ${userStats.streak} day streak`}
+            </span>
+          )}
+        </div>
+        <div style={{
           fontSize: '48px',
           fontWeight: 'bold',
           minHeight: '60px',
           display: 'flex',
           alignItems: 'center',
+          color: '#e0e0e0',
         }}>
-          {currentWord || <span style={{ color: '#666' }}>_</span>}
+          {currentWord || <span style={{ color: '#555' }}>_</span>}
         </div>
         
         <div style={{
           width: '100%',
           height: '2px',
-          backgroundColor: '#000',
+          backgroundColor: '#333',
         }} />
 
         <div style={{
           fontSize: '16px',
-          color: '#333',
+          color: '#888',
         }}>
           Try to solve in 5 words
         </div>
 
         {error && (
           <div style={{
-            color: '#d32f2f',
+            color: '#e57373',
             fontSize: '14px',
             marginTop: '10px',
           }}>
@@ -272,8 +388,9 @@ export default function Home() {
           <div style={{
             marginTop: '20px',
             fontSize: '16px',
+            color: '#bbb',
           }}>
-            <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
+            <div style={{ marginBottom: '10px', fontWeight: '600', color: '#e0e0e0' }}>
               Completed words ({wordCount}):
             </div>
             {gameState.completedWords.map((word, idx) => (
@@ -315,7 +432,25 @@ export default function Home() {
         transform: 'translateX(-50%)',
         display: 'flex',
         gap: '15px',
+        alignItems: 'center',
       }}>
+        {hasSolvedToday && (
+          <button
+            onClick={() => setShowWinModal(true)}
+            style={{
+              padding: '12px 20px',
+              fontSize: '15px',
+              fontWeight: '500',
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #444',
+              borderRadius: '25px',
+              cursor: 'pointer',
+              color: '#e0e0e0',
+            }}
+          >
+            Results
+          </button>
+        )}
         <ControlButtons
           onRestart={handleRestart}
           onDelete={handleDelete}
@@ -329,6 +464,21 @@ export default function Home() {
         onEnter={handleEnter}
         onDelete={handleDelete}
       />
+
+      {/* Info modal */}
+      {showInfoModal && (
+        <InfoModal onClose={() => setShowInfoModal(false)} />
+      )}
+
+      {/* Win modal */}
+      {showWinModal && winStats && (
+        <WinModal
+          stats={winStats}
+          onClose={() => setShowWinModal(false)}
+          copySuccess={copySuccess}
+          onCopy={handleCopyShare}
+        />
+      )}
     </div>
   );
 }

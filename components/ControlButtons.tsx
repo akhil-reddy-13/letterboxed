@@ -19,18 +19,19 @@ export default function ControlButtons({
     padding: '12px 24px',
     fontSize: '16px',
     fontWeight: '500',
-    backgroundColor: '#f5c2c7',
-    border: '2px solid #e0a5ab',
+    backgroundColor: '#2a2a2a',
+    border: '1px solid #444',
     borderRadius: '25px',
     cursor: 'pointer',
-    color: '#000',
+    color: '#e0e0e0',
     minWidth: '100px',
     transition: 'all 0.2s',
   };
 
   const hoverStyle: React.CSSProperties = {
-    backgroundColor: '#e0a5ab',
-    transform: 'scale(1.05)',
+    backgroundColor: '#333',
+    borderColor: '#555',
+    transform: 'scale(1.02)',
   };
 
   return (

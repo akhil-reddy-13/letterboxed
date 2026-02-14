@@ -102,11 +102,11 @@ export default function LetterSquare({
         key="current-word"
         d={pathData}
         fill="none"
-        stroke="#d81b60"
+        stroke="#e57373"
         strokeWidth="5"
         strokeDasharray="10,5"
         strokeLinecap="round"
-        strokeOpacity="0.9"
+        strokeOpacity="0.95"
       />
     );
   };
@@ -126,9 +126,9 @@ export default function LetterSquare({
           key={`completed-word-${wordIdx}`}
           d={pathData}
           fill="none"
-          stroke="#b0b0b0"
+          stroke="#555"
           strokeWidth="3"
-          strokeOpacity="0.6"
+          strokeOpacity="0.8"
           strokeLinecap="round"
         />
       );
@@ -189,8 +189,8 @@ export default function LetterSquare({
           width={sideLength}
           height={sideLength}
           fill="none"
-          stroke="#000"
-          strokeWidth="3"
+          stroke="#444"
+          strokeWidth="2"
         />
 
         {/* Draw completed word paths first (behind current word) */}
@@ -216,13 +216,13 @@ export default function LetterSquare({
                 cy={pos.y}
                 r={20}
                 fill={
-                  isLast ? '#f5c2c7' : // Pink for last selected in current word
-                  isFirst ? '#000' : // Black for first in current word
-                  inCurrentWord ? '#ddd' : // Light gray for in current word
-                  inCompleted ? '#e8e8e8' : // Very light gray for used in completed words
-                  '#fff' // White for unused
+                  isLast ? '#c44' : // Accent for last selected in current word
+                  isFirst ? '#e0e0e0' : // Light for first in current word
+                  inCurrentWord ? '#555' : // Dark gray for in current word
+                  inCompleted ? '#444' : // Dark for used in completed words
+                  '#2a2a2a' // Dark for unused
                 }
-                stroke="#000"
+                stroke="#555"
                 strokeWidth="2"
                 style={{
                   cursor: 'pointer',
@@ -240,7 +240,7 @@ export default function LetterSquare({
                 dominantBaseline="middle"
                 fontSize="18"
                 fontWeight="bold"
-                fill={isFirst ? '#fff' : '#000'}
+                fill={isFirst ? '#1a1a1a' : '#e0e0e0'}
                 style={{ pointerEvents: 'none', userSelect: 'none' }}
               >
                 {letter.char}

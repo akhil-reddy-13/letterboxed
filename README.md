@@ -30,11 +30,19 @@ npm run dev
 npm run build
 ```
 
+## Shareable Results
+
+After solving a puzzle, a modal appears with a copy-to-clipboard share message:
+- "I solved Letter Boxed in X words!" with emojis
+- Word lengths and solve time
+- Emoji grid (Wordle/Connections style)
+- "Play here 👉" with your site link
+
 ## Deployment to Vercel
 
 1. Push your code to a Git repository
 2. Import the project in Vercel
-3. Vercel will automatically detect Next.js and deploy
+4. Vercel will automatically detect Next.js and deploy
 
 Or use the Vercel CLI:
 
