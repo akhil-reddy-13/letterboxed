@@ -369,8 +369,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Spacer to push buttons down */}
-        <div style={{ flex: 1 }} />
+        {/* Spacer to push buttons down (minimal on mobile) */}
+        <div className="game-spacer" />
       </div>
 
       {/* Right side - Letter Square */}
