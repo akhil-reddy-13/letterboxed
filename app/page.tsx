@@ -26,8 +26,13 @@ export default function Home() {
   const [puzzle, setPuzzle] = useState<Letter[]>([]);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const gameStartTime = useRef<number | null>(null);
+
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
   const [winStats, setWinStats] = useState<WinStats | null>(null);
   const [showWinModal, setShowWinModal] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -132,10 +137,21 @@ export default function Home() {
 
   const handleLetterDragStart = useCallback((letter: Letter) => {
     if (!gameState) return;
-    
+
+    // Resume drag from last letter (continue building word)
+    if (gameState.currentWord.length > 0) {
+      const lastLetter = gameState.currentWord[gameState.currentWord.length - 1];
+      if (lastLetter.side === letter.side && lastLetter.index === letter.index) {
+        isDraggingRef.current = true;
+        setIsDragging(true);
+        return;
+      }
+    }
+
     // Start new word if needed
     if (gameState.currentWord.length === 0) {
       if (canStartNewWord(letter, gameState.lastWordEndSide)) {
+        isDraggingRef.current = true;
         setIsDragging(true);
         const newAllUsedLetters = new Set(gameState.allUsedLetters);
         newAllUsedLetters.add(`${letter.side}-${letter.index}`);
@@ -151,11 +167,12 @@ export default function Home() {
   }, [gameState]);
 
   const handleLetterDragEnter = useCallback((letter: Letter) => {
-    if (!gameState || !isDragging) return;
+    if (!gameState || !isDraggingRef.current) return;
     handleLetterClick(letter);
-  }, [gameState, isDragging, handleLetterClick]);
+  }, [gameState, handleLetterClick]);
 
   const handleLetterDragEnd = useCallback(() => {
+    isDraggingRef.current = false;
     setIsDragging(false);
   }, []);
 
@@ -351,11 +368,7 @@ export default function Home() {
           {currentWord || <span className="cursor-blink" style={{ color: '#888' }}>_</span>}
         </div>
         
-        <div style={{
-          width: '100%',
-          height: '2px',
-          backgroundColor: '#333',
-        }} />
+        <div className="game-divider" />
 
         <div className="game-subtitle">
           Try to solve in 5 words

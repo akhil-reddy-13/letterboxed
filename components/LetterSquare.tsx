@@ -26,6 +26,11 @@ export default function LetterSquare({
   const [hoveredLetter, setHoveredLetter] = useState<Letter | null>(null);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
 
   const clientToSvg = (clientX: number, clientY: number): { x: number; y: number } | null => {
     if (!svgRef.current) return null;
@@ -216,6 +221,7 @@ export default function LetterSquare({
     const touch = e.touches[0];
     const pos = clientToSvg(touch.clientX, touch.clientY);
     setCursorPos(pos);
+    isDraggingRef.current = true;
     setIsDragging(true);
     onLetterDragStart(letter);
   };
@@ -224,8 +230,9 @@ export default function LetterSquare({
     if (touchStartLetterRef.current) {
       touchStartLetterRef.current = null;
     }
-    if (isDragging) {
+    if (isDraggingRef.current) {
       setCursorPos(null);
+      isDraggingRef.current = false;
       setIsDragging(false);
       onLetterDragEnd();
     }
@@ -233,7 +240,7 @@ export default function LetterSquare({
 
   useEffect(() => {
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isDragging || !e.touches.length) return;
+      if (!isDraggingRef.current || !e.touches.length) return;
       const touch = e.touches[0];
       const pos = clientToSvg(touch.clientX, touch.clientY);
       if (pos) setCursorPos(pos);
@@ -245,7 +252,7 @@ export default function LetterSquare({
       const x = (touch.clientX - rect.left) * scaleX;
       const y = (touch.clientY - rect.top) * scaleY;
       let closest: Letter | null = null;
-      let minDist = 30;
+      let minDist = 40;
       letters.forEach((letter) => {
         const letterPos = getLetterPosition(letter);
         const d = Math.hypot(x - letterPos.x, y - letterPos.y);
@@ -258,9 +265,10 @@ export default function LetterSquare({
     };
 
     const handleTouchEndGlobal = () => {
-      if (isDragging) {
+      if (isDraggingRef.current) {
         setCursorPos(null);
         setIsDragging(false);
+        isDraggingRef.current = false;
         onLetterDragEnd();
       }
     };
@@ -273,7 +281,7 @@ export default function LetterSquare({
       window.removeEventListener('touchend', handleTouchEndGlobal);
       window.removeEventListener('touchcancel', handleTouchEndGlobal);
     };
-  }, [isDragging, onLetterDragEnter, letters]);
+  }, [onLetterDragEnter, letters]);
 
   return (
     <div className="letter-square-wrapper" style={{ position: 'relative' }}>
