@@ -112,8 +112,8 @@ export default function Home() {
     } else {
       const lastLetter = gameState.currentWord[gameState.currentWord.length - 1];
       const isLastLetter = lastLetter.side === letter.side && lastLetter.index === letter.index;
-      if (isLastLetter) {
-        // Click on current last letter: remove it from end
+      if (isLastLetter && gameState.currentWord.length >= 2) {
+        // Click on current last letter (when 2+ letters): remove it from end
         const newWord = gameState.currentWord.slice(0, -1);
         const newAllUsedLetters = new Set(gameState.allUsedLetters);
         const isInCompletedWords = gameState.completedWordPaths.some((path) =>
@@ -129,6 +129,8 @@ export default function Home() {
           allUsedLetters: newAllUsedLetters,
         });
         setError(null);
+      } else if (isLastLetter && gameState.currentWord.length === 1) {
+        // Tap/click on only letter - no-op (avoids add-then-remove from tap-to-add)
       } else if (gameState.selectedSide === letter.side) {
         setError('Cannot select from the same side consecutively!');
       }
