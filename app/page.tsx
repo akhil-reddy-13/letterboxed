@@ -295,24 +295,12 @@ export default function Home() {
   const wordCount = getWordCount(gameState);
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      minHeight: '100vh',
-      backgroundColor: '#0f0f0f',
-      padding: '20px',
-      gap: '40px',
-      maxWidth: '1400px',
-      margin: '0 auto',
-    }}>
+    <div className="game-layout">
       {/* Info button - top right */}
       <button
         onClick={() => setShowInfoModal(true)}
+        className="game-info-btn"
         style={{
-          position: 'fixed',
-          top: '16px',
-          right: '16px',
-          width: '28px',
-          height: '28px',
           borderRadius: '4px',
           border: '1px solid #444',
           backgroundColor: '#1a1a1a',
@@ -323,7 +311,6 @@ export default function Home() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 100,
         }}
         title="About"
       >
@@ -331,17 +318,8 @@ export default function Home() {
       </button>
 
       {/* Left side - Text area */}
-      <div style={{ 
-        flex: '1',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px',
-      }}>
-        <div style={{
-          fontSize: '14px',
-          color: '#888',
-          marginBottom: '-10px',
-        }}>
+      <div className="game-left">
+        <div className="game-date">
           {getDisplayDatePST()} • Pacific
           {userStats.totalWins > 0 && (
             <span style={{ marginLeft: '12px', color: '#666' }}>
@@ -350,15 +328,8 @@ export default function Home() {
             </span>
           )}
         </div>
-        <div style={{
-          fontSize: '48px',
-          fontWeight: 'bold',
-          minHeight: '60px',
-          display: 'flex',
-          alignItems: 'center',
-          color: '#e0e0e0',
-        }}>
-          {currentWord || <span style={{ color: '#555' }}>_</span>}
+        <div className="game-word-display">
+          {currentWord || <span className="cursor-blink" style={{ color: '#888' }}>_</span>}
         </div>
         
         <div style={{
@@ -367,10 +338,7 @@ export default function Home() {
           backgroundColor: '#333',
         }} />
 
-        <div style={{
-          fontSize: '16px',
-          color: '#888',
-        }}>
+        <div className="game-subtitle">
           Try to solve in 5 words
         </div>
 
@@ -406,13 +374,7 @@ export default function Home() {
       </div>
 
       {/* Right side - Letter Square */}
-      <div style={{ 
-        flex: '1',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
+      <div className="game-right">
         <LetterSquare
           letters={puzzle}
           currentWord={gameState.currentWord}
@@ -425,15 +387,7 @@ export default function Home() {
       </div>
 
       {/* Bottom - Control Buttons */}
-      <div style={{
-        position: 'fixed',
-        bottom: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        gap: '15px',
-        alignItems: 'center',
-      }}>
+      <div className="game-controls">
         {hasSolvedToday && (
           <button
             onClick={() => setShowWinModal(true)}

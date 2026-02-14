@@ -20,3 +20,153 @@ body {
   color: #e0e0e0;
   min-height: 100vh;
 }
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Mobile-first responsive layout */
+.game-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #0f0f0f;
+  padding: 16px;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  flex-direction: column;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .game-layout {
+    flex-direction: row;
+    align-items: stretch;
+    padding: 20px;
+    gap: 40px;
+  }
+}
+
+.game-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.game-date {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: -8px;
+}
+
+.game-subtitle {
+  font-size: 14px;
+  color: #888;
+}
+
+@media (min-width: 768px) {
+  .game-left {
+    max-width: none;
+    gap: 20px;
+  }
+
+  .game-date {
+    font-size: 14px;
+  }
+
+  .game-subtitle {
+    font-size: 16px;
+  }
+}
+
+.game-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.game-word-display {
+  font-size: 36px;
+  font-weight: bold;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  color: #e0e0e0;
+}
+
+@media (min-width: 768px) {
+  .game-word-display {
+    font-size: 48px;
+    min-height: 60px;
+  }
+}
+
+.game-controls {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 0 16px;
+  width: 100%;
+  max-width: 400px;
+  justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .game-controls {
+    bottom: max(20px, env(safe-area-inset-bottom));
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .game-controls button {
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    min-width: 72px !important;
+  }
+}
+
+.letter-square-wrapper {
+  width: 100%;
+  max-width: min(calc(100vw - 48px), 400px);
+  aspect-ratio: 1;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .letter-square-wrapper {
+    max-width: 400px;
+  }
+}
+
+.game-info-btn {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  width: 36px;
+  height: 36px;
+  z-index: 100;
+}
+
+@media (min-width: 768px) {
+  .game-info-btn {
+    top: 16px;
+    right: 16px;
+    width: 28px;
+    height: 28px;
+  }
+}

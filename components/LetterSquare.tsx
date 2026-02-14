@@ -174,13 +174,71 @@ export default function LetterSquare({
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, [isDragging, onLetterDragEnd]);
 
+  const touchStartLetterRef = useRef<Letter | null>(null);
+
+  const handleTouchStart = (letter: Letter, e: React.TouchEvent) => {
+    e.preventDefault();
+    touchStartLetterRef.current = letter;
+    setIsDragging(true);
+    onLetterDragStart(letter);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartLetterRef.current) {
+      touchStartLetterRef.current = null;
+    }
+    if (isDragging) {
+      setIsDragging(false);
+      onLetterDragEnd();
+    }
+  };
+
+  useEffect(() => {
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging || !e.touches.length || !svgRef.current) return;
+      const touch = e.touches[0];
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      const scaleX = squareSize / rect.width;
+      const scaleY = squareSize / rect.height;
+      const x = (touch.clientX - rect.left) * scaleX;
+      const y = (touch.clientY - rect.top) * scaleY;
+      let closest: Letter | null = null;
+      let minDist = 30;
+      letters.forEach((letter) => {
+        const pos = getLetterPosition(letter);
+        const d = Math.hypot(x - pos.x, y - pos.y);
+        if (d < minDist) {
+          minDist = d;
+          closest = letter;
+        }
+      });
+      if (closest) onLetterDragEnter(closest);
+    };
+
+    const handleTouchEndGlobal = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        onLetterDragEnd();
+      }
+    };
+
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEndGlobal);
+    window.addEventListener('touchcancel', handleTouchEndGlobal);
+    return () => {
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEndGlobal);
+      window.removeEventListener('touchcancel', handleTouchEndGlobal);
+    };
+  }, [isDragging, onLetterDragEnter, letters]);
+
   return (
-    <div style={{ position: 'relative', width: squareSize, height: squareSize }}>
+    <div className="letter-square-wrapper" style={{ position: 'relative' }}>
       <svg
         ref={svgRef}
-        width={squareSize}
-        height={squareSize}
-        style={{ position: 'absolute', top: 0, left: 0 }}
+        viewBox={`0 0 ${squareSize} ${squareSize}`}
+        style={{ width: '100%', height: '100%', display: 'block' }}
       >
         {/* Draw square outline */}
         <rect
@@ -232,6 +290,8 @@ export default function LetterSquare({
                 onMouseEnter={() => handleMouseEnter(letter)}
                 onMouseUp={handleMouseUp}
                 onClick={() => onLetterClick(letter)}
+                onTouchStart={(e) => handleTouchStart(letter, e)}
+                onTouchEnd={handleTouchEnd}
               />
               <text
                 x={pos.x}
