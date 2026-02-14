@@ -105,7 +105,26 @@ export default function Home() {
       });
       setError(null);
     } else {
-      if (gameState.selectedSide === letter.side) {
+      const lastLetter = gameState.currentWord[gameState.currentWord.length - 1];
+      const isLastLetter = lastLetter.side === letter.side && lastLetter.index === letter.index;
+      if (isLastLetter) {
+        // Click on current last letter: remove it from end
+        const newWord = gameState.currentWord.slice(0, -1);
+        const newAllUsedLetters = new Set(gameState.allUsedLetters);
+        const isInCompletedWords = gameState.completedWordPaths.some((path) =>
+          path.some((l) => l.side === lastLetter.side && l.index === lastLetter.index)
+        );
+        if (!isInCompletedWords) {
+          newAllUsedLetters.delete(`${lastLetter.side}-${lastLetter.index}`);
+        }
+        setGameState({
+          ...gameState,
+          currentWord: newWord,
+          selectedSide: newWord.length > 0 ? newWord[newWord.length - 1].side : null,
+          allUsedLetters: newAllUsedLetters,
+        });
+        setError(null);
+      } else if (gameState.selectedSide === letter.side) {
         setError('Cannot select from the same side consecutively!');
       }
     }
@@ -353,11 +372,7 @@ export default function Home() {
         )}
 
         {gameState.completedWords.length > 0 && (
-          <div style={{
-            marginTop: '20px',
-            fontSize: '16px',
-            color: '#bbb',
-          }}>
+          <div className="game-completed-words">
             <div style={{ marginBottom: '10px', fontWeight: '600', color: '#e0e0e0' }}>
               Completed words ({wordCount}):
             </div>

@@ -21,6 +21,14 @@ body {
   min-height: 100vh;
 }
 
+@media (max-width: 767px) {
+  html, body {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+}
+
 @keyframes blink {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0.3; }
@@ -43,6 +51,16 @@ body {
   align-items: center;
 }
 
+@media (max-width: 767px) {
+  .game-layout {
+    padding: 10px;
+    gap: 4px;
+    min-height: 100dvh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+}
+
 @media (min-width: 768px) {
   .game-layout {
     flex-direction: row;
@@ -61,25 +79,65 @@ body {
   max-width: 400px;
 }
 
+@media (max-width: 767px) {
+  .game-left {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+}
+
 .game-spacer {
   flex: 1;
 }
 
 @media (max-width: 767px) {
   .game-spacer {
-    flex: 0 0 8px;
+    flex: 0 0 0;
+    display: none;
   }
 }
 
 .game-date {
-  font-size: 13px;
+  font-size: 12px;
   color: #888;
-  margin-bottom: -8px;
+  margin-bottom: -6px;
+}
+
+@media (max-width: 767px) {
+  .game-date {
+    font-size: 11px;
+    margin-bottom: -4px;
+  }
 }
 
 .game-subtitle {
   font-size: 14px;
   color: #888;
+}
+
+@media (max-width: 767px) {
+  .game-subtitle {
+    font-size: 12px;
+    margin-bottom: -4px;
+  }
+}
+
+.game-completed-words {
+  margin-top: 20px;
+  font-size: 16px;
+  color: #bbb;
+}
+
+@media (max-width: 767px) {
+  .game-completed-words {
+    margin-top: 8px;
+    font-size: 13px;
+  }
+
+  .game-completed-words > div:first-child {
+    font-size: 12px !important;
+    margin-bottom: 4px !important;
+  }
 }
 
 @media (min-width: 768px) {
@@ -104,6 +162,15 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
+  min-height: 0;
+}
+
+@media (max-width: 767px) {
+  .game-right {
+    flex: 1;
+    min-height: 0;
+    justify-content: center;
+  }
 }
 
 .game-word-display {
@@ -113,6 +180,13 @@ body {
   display: flex;
   align-items: center;
   color: #e0e0e0;
+}
+
+@media (max-width: 767px) {
+  .game-word-display {
+    font-size: 28px;
+    min-height: 36px;
+  }
 }
 
 @media (min-width: 768px) {
@@ -156,6 +230,17 @@ body {
   aspect-ratio: 1;
   flex-shrink: 0;
   touch-action: none;
+}
+
+@media (max-width: 767px) {
+  .letter-square-wrapper {
+    --square-size: min(calc(100dvw - 20px), calc(100dvh - 180px));
+    width: var(--square-size);
+    height: var(--square-size);
+    max-width: var(--square-size);
+    aspect-ratio: unset;
+    flex-shrink: 0;
+  }
 }
 
 @media (min-width: 768px) {

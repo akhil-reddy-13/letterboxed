@@ -24,7 +24,21 @@ export default function LetterSquare({
 }: LetterSquareProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [hoveredLetter, setHoveredLetter] = useState<Letter | null>(null);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+
+  const clientToSvg = (clientX: number, clientY: number): { x: number; y: number } | null => {
+    if (!svgRef.current) return null;
+    const rect = svgRef.current.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * squareSize;
+    const y = ((clientY - rect.top) / rect.height) * squareSize;
+    const min = padding;
+    const max = padding + sideLength;
+    return {
+      x: Math.max(min, Math.min(max, x)),
+      y: Math.max(min, Math.min(max, y)),
+    };
+  };
 
   // Organize letters by side
   const lettersBySide: Letter[][] = [[], [], [], []];
@@ -88,14 +102,19 @@ export default function LetterSquare({
            currentWord[currentWord.length - 1].index === letter.index;
   };
 
-  // Draw lines connecting letters in current word (dashed, pink)
+  // Draw lines connecting letters in current word (dashed, pink), with live cursor tail when dragging
   const drawCurrentWordPath = () => {
-    if (currentWord.length < 2) return null;
+    if (currentWord.length === 0) return null;
 
     const points = currentWord.map(letter => getLetterPosition(letter));
-    const pathData = points
+    let pathData = points
       .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
       .join(' ');
+
+    // Extend line to follow cursor/finger when dragging
+    if (isDragging && cursorPos) {
+      pathData += ` L ${cursorPos.x} ${cursorPos.y}`;
+    }
 
     return (
       <path
@@ -144,6 +163,8 @@ export default function LetterSquare({
 
   const handleMouseDown = (letter: Letter, e: React.MouseEvent) => {
     e.preventDefault();
+    const pos = clientToSvg(e.clientX, e.clientY);
+    setCursorPos(pos);
     setIsDragging(true);
     onLetterDragStart(letter);
   };
@@ -157,6 +178,7 @@ export default function LetterSquare({
 
   const handleMouseUp = () => {
     if (isDragging) {
+      setCursorPos(null);
       setIsDragging(false);
       onLetterDragEnd();
     }
@@ -165,6 +187,7 @@ export default function LetterSquare({
   useEffect(() => {
     const handleGlobalMouseUp = () => {
       if (isDragging) {
+        setCursorPos(null);
         setIsDragging(false);
         onLetterDragEnd();
       }
@@ -174,11 +197,25 @@ export default function LetterSquare({
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, [isDragging, onLetterDragEnd]);
 
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      const pos = clientToSvg(e.clientX, e.clientY);
+      if (pos) setCursorPos(pos);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [isDragging]);
+
   const touchStartLetterRef = useRef<Letter | null>(null);
 
   const handleTouchStart = (letter: Letter, e: React.TouchEvent) => {
     e.preventDefault();
     touchStartLetterRef.current = letter;
+    const touch = e.touches[0];
+    const pos = clientToSvg(touch.clientX, touch.clientY);
+    setCursorPos(pos);
     setIsDragging(true);
     onLetterDragStart(letter);
   };
@@ -188,6 +225,7 @@ export default function LetterSquare({
       touchStartLetterRef.current = null;
     }
     if (isDragging) {
+      setCursorPos(null);
       setIsDragging(false);
       onLetterDragEnd();
     }
@@ -195,10 +233,13 @@ export default function LetterSquare({
 
   useEffect(() => {
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isDragging || !e.touches.length || !svgRef.current) return;
+      if (!isDragging || !e.touches.length) return;
       const touch = e.touches[0];
-      const svg = svgRef.current;
-      const rect = svg.getBoundingClientRect();
+      const pos = clientToSvg(touch.clientX, touch.clientY);
+      if (pos) setCursorPos(pos);
+
+      if (!svgRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
       const scaleX = squareSize / rect.width;
       const scaleY = squareSize / rect.height;
       const x = (touch.clientX - rect.left) * scaleX;
@@ -206,8 +247,8 @@ export default function LetterSquare({
       let closest: Letter | null = null;
       let minDist = 30;
       letters.forEach((letter) => {
-        const pos = getLetterPosition(letter);
-        const d = Math.hypot(x - pos.x, y - pos.y);
+        const letterPos = getLetterPosition(letter);
+        const d = Math.hypot(x - letterPos.x, y - letterPos.y);
         if (d < minDist) {
           minDist = d;
           closest = letter;
@@ -218,6 +259,7 @@ export default function LetterSquare({
 
     const handleTouchEndGlobal = () => {
       if (isDragging) {
+        setCursorPos(null);
         setIsDragging(false);
         onLetterDragEnd();
       }
